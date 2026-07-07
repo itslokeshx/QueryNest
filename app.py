@@ -4,6 +4,10 @@ from langchain_groq import ChatGroq
 from pymongo import MongoClient
 from langchain_mongodb.agent_toolkit.database import MongoDBDatabase
 from langchain_mongodb.agent_toolkit.toolkit import MongoDBDatabaseToolkit
+from langchain_mongodb.agent_toolkit.database import MongoDBDatabase
+from langchain_mongodb.agent_toolkit.toolkit import MongoDBDatabaseToolkit
+from langchain_mongodb.agent_toolkit import MONGODB_AGENT_SYSTEM_PROMPT
+from langchain.agents import create_agent
 
 load_dotenv()
 GROQ_API_KEY=os.getenv("GROQ_API_KEY")
@@ -20,3 +24,17 @@ mongo_db=MongoDBDatabase(client=client,database="soulsync")
 toolkit=MongoDBDatabaseToolkit(db=mongo_db,llm=llm)
 
 print(toolkit.get_tools())
+
+mongo_db = MongoDBDatabase(client=client, database="soulsync")
+toolkit = MongoDBDatabaseToolkit(db=mongo_db, llm=llm)
+
+print(toolkit.get_tools())
+
+system_message = MONGODB_AGENT_SYSTEM_PROMPT
+
+agent = create_agent(
+    model=llm,
+    tools=toolkit.get_tools(),
+    system_prompt=system_message ,
+)
+

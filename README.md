@@ -1,85 +1,113 @@
-# 🦜 QueryNest
+<div align="center">
 
-QueryNest is a practical exploration into building agentic applications. It is a simple, conversational web interface that allows users to interact with a MongoDB database using natural language. 
+# QueryNest
+**A Practical Agentic Interface for MongoDB**
 
-Built as a practice ground for understanding agent patterns, it uses Streamlit for the frontend, LangChain/LangGraph for the agent orchestration, and Groq for the LLM inference. It's designed to be a helpful, humble starting point for anyone looking to build database-querying agents.
+<p align="center">
+  <a href="https://streamlit.io/"><img src="https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit" alt="Streamlit"></a>
+  <a href="https://python.langchain.com/"><img src="https://img.shields.io/badge/Orchestration-LangChain-1C3C3C?style=for-the-badge&logo=langchain" alt="LangChain"></a>
+  <a href="https://www.mongodb.com/"><img src="https://img.shields.io/badge/Database-MongoDB-4EA94B?style=for-the-badge&logo=mongodb" alt="MongoDB"></a>
+  <a href="https://groq.com/"><img src="https://img.shields.io/badge/LLM-Groq-f55036?style=for-the-badge" alt="Groq"></a>
+</p>
 
-## 🛠️ Architecture & System Design
+> *QueryNest is a continuous work in progress, serving as a practical template and learning ground for building, debugging, and understanding AI agents.*
 
-QueryNest follows a standard ReAct (Reasoning and Acting) agent pattern implemented via LangGraph. 
+</div>
 
-Here is a high-level overview of the System Design and Data Flow:
+---
+
+## 📖 Overview
+
+QueryNest is a simple, conversational web interface that allows users to interact with a MongoDB database using natural language. Built as an open practice ground for understanding **agentic architectures**, it bridges the gap between raw database logic and human conversation. It's designed to be a helpful, humble starting point for anyone looking to build robust database-querying agents without over-engineering.
+
+<br>
+
+## 🛠️ Architecture & System Design (SD)
+
+QueryNest follows a standard **ReAct (Reasoning and Acting)** agent pattern implemented via LangGraph. 
+
+Here is a high-level overview of the System Design and Data Flow. This cycle repeats until the agent has successfully answered the user's query:
 
 ```mermaid
 graph TD
-    A[User] -->|Enters Query| B[Streamlit UI]
-    B -->|Context & Credentials| C{LangGraph Agent}
+    classDef user fill:#2d2d2d,stroke:#bb86fc,stroke-width:2px,color:#fff;
+    classDef agent fill:#1e1e1e,stroke:#4EA94B,stroke-width:2px,color:#fff;
+    classDef db fill:#1C3C3C,stroke:#4EA94B,stroke-width:2px,color:#fff;
+
+    A((👤 User)):::user -->|Enters Query| B[🖥️ Streamlit UI]:::user
+    B -->|Context & Credentials| C{🧠 LangGraph Agent}:::agent
     
     subgraph Agentic Loop
-        C -->|1. Reason/Plan| C
-        C -->|2. Tool: List Collections| D[(MongoDB)]
+        C -->|1. Reason & Plan| C
+        C -->|2. Tool: List Collections| D[(🍃 MongoDB)]:::db
         D -.->|Available Schema| C
-        C -->|3. Tool: Query Checker| E[Validation]
+        C -->|3. Tool: Query Checker| E[🛡️ Validation]:::agent
         E -.->|Validated Aggregation Pipeline| C
         C -->|4. Tool: Execute Query| D
         D -.->|Raw JSON Results| C
     end
     
-    C -->|5. Synthesize| B
+    C -->|5. Synthesize Context| B
     B -->|Streams Thoughts & Final Answer| A
 ```
 
-### Components
-1. **Frontend (Streamlit):** Handles user inputs, securely stores database URIs and API keys in session state, and streams the agent's thought process (tool calls and reasoning) in real-time.
-2. **Agent Core (LangGraph):** A `create_agent` wrapper orchestrates the flow. It parses the user query, decides which tool to use, and recursively evaluates the tool's output until it has enough information to answer the user.
-3. **Tools (MongoDB Database Toolkit):** 
-   - *List Collections:* Checks what tables exist.
-   - *Query Checker:* Validates the syntax of the MongoDB aggregation pipeline to prevent runtime crashes.
-   - *Query Executor:* Runs the `db.collection.aggregate(...)` pipeline against the actual database.
-4. **LLM Engine (Groq):** Provides the reasoning layer (e.g., `gpt-oss-20b` or `Llama3`) to translate plain English into valid MongoDB pipelines and synthesize the raw JSON output back into human-readable text.
+### 🧩 Core Components
+| Component | Technology | Role |
+| :--- | :--- | :--- |
+| **Frontend** | `Streamlit` | Handles user inputs, securely stores URI/API keys in session state, and natively streams the agent's internal thought process in real-time. |
+| **Agent Core** | `LangGraph` | Orchestrates the flow. It parses the user query, decides which tool to use, and recursively evaluates the tool's output. |
+| **Tools** | `Langchain Toolkit` | Includes **List Collections** (schema check), **Query Checker** (syntax validation), and **Query Executor** (safely runs the pipeline). |
+| **LLM Engine** | `Groq` | Provides the lightning-fast reasoning layer (e.g., `gpt-oss-20b` or `Llama3`) to translate plain English into valid MongoDB pipelines. |
+
+<br>
 
 ## 🚀 Getting Started
 
-### Prerequisites
-- Python 3.9+
-- A Groq API Key (get one at [console.groq.com](https://console.groq.com))
-- A MongoDB cluster/database URI 
+### 📋 Prerequisites
+Before you begin, ensure you have the following:
+- **Python 3.9+** installed on your system.
+- A **Groq API Key** (You can generate one at [console.groq.com](https://console.groq.com)).
+- A **MongoDB Cluster / Database URI** (e.g., via MongoDB Atlas).
 
-### Setup Instructions
+### ⚙️ Setup Instructions
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://github.com/yourusername/QueryNest.git
-   cd QueryNest
-   ```
+**1. Clone the repository:**
+```bash
+git clone https://github.com/yourusername/QueryNest.git
+cd QueryNest
+```
 
-2. **Set up a virtual environment:**
-   It is best practice to use a virtual environment to keep dependencies isolated.
-   ```bash
-   python3 -m venv .venv
-   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
-   ```
+**2. Set up a virtual environment (Recommended):**
+Keep your dependencies isolated to avoid conflicts.
+```bash
+python3 -m venv .venv
+source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+```
 
-3. **Install the dependencies:**
-   Install all required packages via the provided `requirements.txt`.
-   ```bash
-   pip install -r requirements.txt
-   ```
-   *(Note: If you run into any Langchain community callback errors, the app handles streaming natively via `st.status`.)*
+**3. Install the dependencies:**
+Install all required packages cleanly via the provided `requirements.txt`.
+```bash
+pip install -r requirements.txt
+```
+*(Note: Streaming logic is handled safely and natively in the main thread via Streamlit's `st.status`, avoiding common threading issues in LangChain callbacks).*
 
-4. **Run the application:**
-   ```bash
-   streamlit run app.py
-   ```
+**4. Run the application:**
+```bash
+streamlit run app.py
+```
+
+<br>
 
 ## 💡 Usage Flow
 
-1. **Configure:** Upon launching, use the sidebar to securely input your `GROQ_API_KEY`, your `MONGODB_URI`, and the specific `Database Name`.
-2. **Connect:** Click "Connect". The app will initialize the database toolkit.
-3. **Chat:** Ask questions about your data! Examples:
-   - *"How many users do we have?"*
+1. 🔐 **Configure:** Upon launching the UI, open the sidebar and securely input your `GROQ_API_KEY`, your `MONGODB_URI`, and the target `Database Name`.
+2. 🔌 **Connect:** Click **Connect**. The app will initialize the LangChain MongoDB toolkit and establish a secure connection.
+3. 💬 **Chat:** Start asking questions about your data! Try prompts like:
+   - *"How many users do we have in total?"*
    - *"List the top 5 users based on their listening time."*
-4. **Observe the Agent:** Expand the "Agent thinking..." box in the chat to see exactly how the model reasons, which tools it selects, and the raw output it receives from MongoDB before giving you the final answer.
+4. 🔍 **Observe the Agent:** Click the **"Agent thinking..."** dropdown in the chat to look under the hood. You'll see exactly how the model reasons, which tools it selects, and the raw output it receives from MongoDB before giving you the final human-readable answer.
 
 ---
-*QueryNest is a continuous work in progress, serving as a practical template for building and understanding AI agents.*
+<div align="center">
+  <sub>Built for the love of AI engineering and exploring agentic logic.</sub>
+</div>

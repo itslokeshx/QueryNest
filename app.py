@@ -7,7 +7,13 @@ from langchain_mongodb.agent_toolkit.toolkit import MongoDBDatabaseToolkit
 from langchain_mongodb.agent_toolkit import MONGODB_AGENT_SYSTEM_PROMPT
 from langchain.agents import create_agent
 
-st.set_page_config(page_title="QueryNest", layout="centered", initial_sidebar_state="expanded")
+sidebar_state = "collapsed" if st.session_state.get("connected", False) else "expanded"
+st.set_page_config(page_title="QueryNest", layout="centered", initial_sidebar_state=sidebar_state)
+
+if "connected" not in st.session_state:
+    st.session_state.connected = False
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
 st.markdown("""
 <style>
@@ -32,21 +38,36 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.sidebar:
-    st.title("Configuration")
-    groq_api_key = st.text_input("GROQ_API_KEY", type="password")
-    mongodb_uri = st.text_input("MONGODB_URI", type="password")
-    db_name = st.text_input("Database Name")
-
-if "messages" not in st.session_state:
-    st.session_state.messages = []
+    if not st.session_state.connected:
+        st.title("Configuration")
+        groq_key_input = st.text_input("GROQ_API_KEY", type="password")
+        mongo_uri_input = st.text_input("MONGODB_URI", type="password")
+        db_name_input = st.text_input("Database Name")
+        
+        if st.button("Connect"):
+            if groq_key_input and mongo_uri_input and db_name_input:
+                st.session_state.groq_api_key = groq_key_input
+                st.session_state.mongodb_uri = mongo_uri_input
+                st.session_state.db_name = db_name_input
+                st.session_state.connected = True
+                st.session_state.messages.append({"role": "assistant", "content": "How can I help you today?"})
+                st.rerun()
+            else:
+                st.error("Please fill all fields")
+    else:
+        st.success("Connected to Database")
+        if st.button("Disconnect"):
+            st.session_state.connected = False
+            st.session_state.messages = []
+            st.rerun()
 
 for msg in st.session_state.messages:
     with st.chat_message(msg["role"]):
         st.markdown(msg["content"])
 
 if prompt := st.chat_input("Message QueryNest..."):
-    if not groq_api_key or not mongodb_uri:
-        st.error("Please configure API keys in the sidebar")
+    if not st.session_state.connected:
+        st.error("Please configure API keys and Connect in the sidebar first.")
         st.stop()
 
     st.session_state.messages.append({"role": "user", "content": prompt})
@@ -58,13 +79,13 @@ if prompt := st.chat_input("Message QueryNest..."):
             try:
                 llm = ChatGroq(
                     model="openai/gpt-oss-20b",
-                    api_key=groq_api_key,
+                    api_key=st.session_state.groq_api_key,
                     max_tokens=2048,
                     reasoning_effort="low",
                 )
                 
-                client = MongoClient(mongodb_uri)
-                mongo_db = MongoDBDatabase(client=client, database=db_name)
+                client = MongoClient(st.session_state.mongodb_uri)
+                mongo_db = MongoDBDatabase(client=client, database=st.session_state.db_name)
                 toolkit = MongoDBDatabaseToolkit(db=mongo_db, llm=llm)
                 
                 system_message = MONGODB_AGENT_SYSTEM_PROMPT.format(top_k=5)

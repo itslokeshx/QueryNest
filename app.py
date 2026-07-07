@@ -94,7 +94,7 @@ CRITICAL TOOL USAGE INSTRUCTIONS:
 1. COLLECTION NAMES: ALWAYS verify exact collection names using the appropriate tool before querying. NEVER guess (e.g., check for 'playlists' if asked about 'playlist').
 2. TOOL NAMES: When calling tools, use EXACTLY the tool name provided. DO NOT add punctuation, suffixes, or apostrophes (e.g., NEVER use 'mongodb_query_checker's' - use the exact tool name without quotes).
 3. ERROR RECOVERY: If a tool returns an error or you get a tool validation error, read the error and fix your next tool call. DO NOT repeat the same mistake.
-4. QUERY FORMAT: You MUST ONLY use `db.collection.aggregate(...)` queries. Other methods like `find()`, `countDocuments()`, or `findOne()` are strictly unsupported and will cause errors. For example, to count documents, use `db.collection.aggregate([{$count: "total"}])`."""
+4. Always construct correct MongoDB query syntax."""
             agent = create_agent(
                 model=llm,
                 tools=toolkit.get_tools(),
@@ -117,12 +117,12 @@ CRITICAL TOOL USAGE INSTRUCTIONS:
                             msg = values["messages"][-1]
                             if hasattr(msg, "tool_calls") and msg.tool_calls:
                                 for tool_call in msg.tool_calls:
-                                    st.write(f"🔧 **Tool Call:** `{tool_call['name']}`")
+                                    st.write(f" **Tool Call:** `{tool_call['name']}`")
                                     with st.expander("Tool Arguments"):
                                         st.json(tool_call['args'])
                         elif node == "tools":
                             msg = values["messages"][-1]
-                            st.write(f"✅ **Tool Result:** `{msg.name}`")
+                            st.write(f"**Tool Result:** `{msg.name}`")
                             with st.expander("Tool Output"):
                                 st.write(msg.content)
                         

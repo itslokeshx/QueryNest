@@ -89,7 +89,13 @@ if prompt := st.chat_input("Message QueryNest..."):
                 toolkit = MongoDBDatabaseToolkit(db=mongo_db, llm=llm)
                 
                 system_message = MONGODB_AGENT_SYSTEM_PROMPT.format(top_k=5)
-                system_message += "\n\nCRITICAL INSTRUCTION: ALWAYS verify exact collection names using the appropriate tool before querying. If a user asks about 'playlist' or 'playlists', ensure you check for the 'playlists' collection. NEVER guess collection names, as it will cause a crash."
+                system_message += """
+
+CRITICAL TOOL USAGE INSTRUCTIONS:
+1. COLLECTION NAMES: ALWAYS verify exact collection names using the appropriate tool before querying. NEVER guess (e.g., check for 'playlists' if asked about 'playlist').
+2. TOOL NAMES: When calling tools, use EXACTLY the tool name provided. DO NOT add punctuation, suffixes, or apostrophes (e.g., NEVER use 'mongodb_query_checker's' - use the exact tool name without quotes).
+3. ERROR RECOVERY: If a tool returns an error or you get a tool validation error, read the error and fix your next tool call. DO NOT repeat the same mistake.
+4. Always construct correct MongoDB query syntax."""
                 agent = create_agent(
                     model=llm,
                     tools=toolkit.get_tools(),

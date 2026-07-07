@@ -7,7 +7,7 @@ Thumbs.db
 .idea/
 *.sublime-workspace
 *.sublime-project
-
+app.ipynb
 # Python
 __pycache__/
 *.py[cod]

@@ -117,12 +117,12 @@ CRITICAL TOOL USAGE INSTRUCTIONS:
                             msg = values["messages"][-1]
                             if hasattr(msg, "tool_calls") and msg.tool_calls:
                                 for tool_call in msg.tool_calls:
-                                    st.write(f" **Tool Call:** `{tool_call['name']}`")
+                                    st.write(f"🔧 **Tool Call:** `{tool_call['name']}`")
                                     with st.expander("Tool Arguments"):
                                         st.json(tool_call['args'])
                         elif node == "tools":
                             msg = values["messages"][-1]
-                            st.write(f"**Tool Result:** `{msg.name}`")
+                            st.write(f"✅ **Tool Result:** `{msg.name}`")
                             with st.expander("Tool Output"):
                                 st.write(msg.content)
                         

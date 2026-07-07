@@ -1,30 +1,51 @@
 # 🦜 QueryNest
 
-**QueryNest** is an intelligent, conversational web application that allows you to chat directly with your MongoDB databases using natural language. Built with Streamlit, LangChain, and powered by Groq's blazing-fast LLMs, it transforms complex database queries into simple conversations.
+QueryNest is a practical exploration into building agentic applications. It is a simple, conversational web interface that allows users to interact with a MongoDB database using natural language. 
 
-![QueryNest UI preview](https://img.shields.io/badge/UI-Streamlit-FF4B4B?style=for-the-badge&logo=streamlit)
-![LangChain](https://img.shields.io/badge/LangChain-1C3C3C?style=for-the-badge&logo=langchain)
-![MongoDB](https://img.shields.io/badge/MongoDB-4EA94B?style=for-the-badge&logo=mongodb)
-![Groq](https://img.shields.io/badge/Groq-f55036?style=for-the-badge)
+Built as a practice ground for understanding agent patterns, it uses Streamlit for the frontend, LangChain/LangGraph for the agent orchestration, and Groq for the LLM inference. It's designed to be a helpful, humble starting point for anyone looking to build database-querying agents.
 
-## ✨ Features
+## 🛠️ Architecture & System Design
 
-- **Conversational Interface:** Ask questions about your data in plain English. No need to write complex MongoDB Aggregation pipelines manually.
-- **Real-Time Agent Thoughts:** Watch the AI's reasoning process unfold in real-time. The "Agent thinking..." expander shows you exactly what tools are being called and what data is retrieved from the database.
-- **Secure Configuration:** Your MongoDB URI and Groq API Key are entered securely through the sidebar and are kept strictly within your active session state.
-- **Dynamic Connection:** Seamlessly connect and disconnect from different databases without restarting the application.
-- **Sleek Dark Mode UI:** Custom CSS implementation provides a gorgeous, distraction-free dark mode interface right out of the box.
+QueryNest follows a standard ReAct (Reasoning and Acting) agent pattern implemented via LangGraph. 
+
+Here is a high-level overview of the System Design and Data Flow:
+
+```mermaid
+graph TD
+    A[User] -->|Enters Query| B[Streamlit UI]
+    B -->|Context & Credentials| C{LangGraph Agent}
+    
+    subgraph Agentic Loop
+        C -->|1. Reason/Plan| C
+        C -->|2. Tool: List Collections| D[(MongoDB)]
+        D -.->|Available Schema| C
+        C -->|3. Tool: Query Checker| E[Validation]
+        E -.->|Validated Aggregation Pipeline| C
+        C -->|4. Tool: Execute Query| D
+        D -.->|Raw JSON Results| C
+    end
+    
+    C -->|5. Synthesize| B
+    B -->|Streams Thoughts & Final Answer| A
+```
+
+### Components
+1. **Frontend (Streamlit):** Handles user inputs, securely stores database URIs and API keys in session state, and streams the agent's thought process (tool calls and reasoning) in real-time.
+2. **Agent Core (LangGraph):** A `create_agent` wrapper orchestrates the flow. It parses the user query, decides which tool to use, and recursively evaluates the tool's output until it has enough information to answer the user.
+3. **Tools (MongoDB Database Toolkit):** 
+   - *List Collections:* Checks what tables exist.
+   - *Query Checker:* Validates the syntax of the MongoDB aggregation pipeline to prevent runtime crashes.
+   - *Query Executor:* Runs the `db.collection.aggregate(...)` pipeline against the actual database.
+4. **LLM Engine (Groq):** Provides the reasoning layer (e.g., `gpt-oss-20b` or `Llama3`) to translate plain English into valid MongoDB pipelines and synthesize the raw JSON output back into human-readable text.
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-
-You will need the following installed and set up:
 - Python 3.9+
 - A Groq API Key (get one at [console.groq.com](https://console.groq.com))
-- A MongoDB cluster/database URI (e.g., MongoDB Atlas)
+- A MongoDB cluster/database URI 
 
-### Installation
+### Setup Instructions
 
 1. **Clone the repository:**
    ```bash
@@ -32,38 +53,33 @@ You will need the following installed and set up:
    cd QueryNest
    ```
 
-2. **Create a virtual environment:**
+2. **Set up a virtual environment:**
+   It is best practice to use a virtual environment to keep dependencies isolated.
    ```bash
-   python -m venv .venv
-   source .venv/bin/activate  # On Windows use: .venv\Scripts\activate
+   python3 -m venv .venv
+   source .venv/bin/activate  # On Windows: .venv\Scripts\activate
    ```
 
 3. **Install the dependencies:**
-   Make sure you have the required packages installed:
+   Install all required packages via the provided `requirements.txt`.
    ```bash
-   pip install streamlit langchain langchain-groq langchain-mongodb pymongo
+   pip install -r requirements.txt
    ```
+   *(Note: If you run into any Langchain community callback errors, the app handles streaming natively via `st.status`.)*
 
 4. **Run the application:**
    ```bash
    streamlit run app.py
    ```
 
-## 💡 How to Use
+## 💡 Usage Flow
 
-1. **Configure:** Open the sidebar and enter your `GROQ_API_KEY`, your `MONGODB_URI`, and the specific `Database Name` you want to query.
-2. **Connect:** Click the "Connect" button. The app will initialize the LangChain MongoDB toolkit and establish a connection.
-3. **Chat:** Type your questions into the chat input! Try prompts like:
-   - *"How many users are in the database?"*
-   - *"List the top 5 users sorted by listening time."*
-   - *"What collections do we have available?"*
-4. **Inspect:** Click on the "Agent thinking..." dropdown to see the exact MongoDB queries generated and executed by the AI.
-
-## 🧠 Under the Hood
-
-QueryNest utilizes the modern `create_agent` architecture (powered by LangGraph) from LangChain. It uses the `MongoDBDatabaseToolkit` to automatically detect collections and execute secure aggregation pipelines.
-
-The agent's system prompt ensures strict adherence to aggregation queries (`db.collection.aggregate(...)`), preventing unsupported query types and ensuring high reliability when conversing with your database.
+1. **Configure:** Upon launching, use the sidebar to securely input your `GROQ_API_KEY`, your `MONGODB_URI`, and the specific `Database Name`.
+2. **Connect:** Click "Connect". The app will initialize the database toolkit.
+3. **Chat:** Ask questions about your data! Examples:
+   - *"How many users do we have?"*
+   - *"List the top 5 users based on their listening time."*
+4. **Observe the Agent:** Expand the "Agent thinking..." box in the chat to see exactly how the model reasons, which tools it selects, and the raw output it receives from MongoDB before giving you the final answer.
 
 ---
-*Built with ❤️ for AI engineering and seamless database interactions.*
+*QueryNest is a continuous work in progress, serving as a practical template for building and understanding AI agents.*

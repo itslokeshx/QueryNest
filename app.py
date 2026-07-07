@@ -6,6 +6,7 @@ from langchain_mongodb.agent_toolkit.database import MongoDBDatabase
 from langchain_mongodb.agent_toolkit.toolkit import MongoDBDatabaseToolkit
 from langchain_mongodb.agent_toolkit import MONGODB_AGENT_SYSTEM_PROMPT
 from langchain.agents import create_agent
+import streamlit as st
 
 
 load_dotenv()

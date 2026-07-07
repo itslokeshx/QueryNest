@@ -6,6 +6,7 @@ from langchain_mongodb.agent_toolkit.database import MongoDBDatabase
 from langchain_mongodb.agent_toolkit.toolkit import MongoDBDatabaseToolkit
 from langchain_mongodb.agent_toolkit import MONGODB_AGENT_SYSTEM_PROMPT
 from langchain.agents import create_agent
+from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 
 sidebar_state = "collapsed" if st.session_state.get("connected", False) else "expanded"
 st.set_page_config(page_title="QueryNest", layout="centered", initial_sidebar_state=sidebar_state)
@@ -102,12 +103,16 @@ CRITICAL TOOL USAGE INSTRUCTIONS:
                     system_prompt=system_message,
                 )
                 
-                response = agent.invoke({
-                    "messages": [
-                        {"role": m["role"], "content": m["content"]}
-                        for m in st.session_state.messages
-                    ]
-                })
+                st_callback = StreamlitCallbackHandler(st.container(), expand_new_thoughts=True)
+                response = agent.invoke(
+                    {
+                        "messages": [
+                            {"role": m["role"], "content": m["content"]}
+                            for m in st.session_state.messages
+                        ]
+                    },
+                    config={"callbacks": [st_callback]}
+                )
                 
                 answer = response["messages"][-1].content
                 st.markdown(answer)

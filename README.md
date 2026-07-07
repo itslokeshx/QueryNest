@@ -1,6 +1,6 @@
 <div align="center">
 
-# QueryNest
+# QueryNest 🪶
 **A Practical Agentic Interface for MongoDB**
 
 <p align="center">
@@ -24,7 +24,7 @@ QueryNest is a simple, conversational web interface that allows users to interac
 
 ## 🛠️ Architecture & System Design (SD)
 
-QueryNest follows a standard **ReAct (Reasoning and Acting)** agent pattern implemented via LangGraph. 
+QueryNest follows a standard **ReAct (Reasoning and Acting)** agent pattern implemented via LangChain. 
 
 Here is a high-level overview of the System Design and Data Flow. This cycle repeats until the agent has successfully answered the user's query:
 
@@ -35,7 +35,7 @@ graph TD
     classDef db fill:#1C3C3C,stroke:#4EA94B,stroke-width:2px,color:#fff;
 
     A((👤 User)):::user -->|Enters Query| B[🖥️ Streamlit UI]:::user
-    B -->|Context & Credentials| C{🧠 LangGraph Agent}:::agent
+    B -->|Context & Credentials| C{🧠 LangChain Agent}:::agent
     
     subgraph Agentic Loop
         C -->|1. Reason & Plan| C
@@ -55,7 +55,7 @@ graph TD
 | Component | Technology | Role |
 | :--- | :--- | :--- |
 | **Frontend** | `Streamlit` | Handles user inputs, securely stores URI/API keys in session state, and natively streams the agent's internal thought process in real-time. |
-| **Agent Core** | `LangGraph` | Orchestrates the flow. It parses the user query, decides which tool to use, and recursively evaluates the tool's output. |
+| **Agent Core** | `LangChain` | Orchestrates the flow. It parses the user query, decides which tool to use, and recursively evaluates the tool's output. |
 | **Tools** | `Langchain Toolkit` | Includes **List Collections** (schema check), **Query Checker** (syntax validation), and **Query Executor** (safely runs the pipeline). |
 | **LLM Engine** | `Groq` | Provides the lightning-fast reasoning layer (e.g., `gpt-oss-20b` or `Llama3`) to translate plain English into valid MongoDB pipelines. |
 

@@ -6,7 +6,6 @@ from langchain_mongodb.agent_toolkit.database import MongoDBDatabase
 from langchain_mongodb.agent_toolkit.toolkit import MongoDBDatabaseToolkit
 from langchain_mongodb.agent_toolkit import MONGODB_AGENT_SYSTEM_PROMPT
 from langchain.agents import create_agent
-from langchain_community.callbacks.streamlit import StreamlitCallbackHandler
 
 sidebar_state = "collapsed" if st.session_state.get("connected", False) else "expanded"
 st.set_page_config(page_title="QueryNest", layout="centered", initial_sidebar_state=sidebar_state)
@@ -76,46 +75,63 @@ if prompt := st.chat_input("Message QueryNest..."):
         st.markdown(prompt)
     
     with st.chat_message("assistant"):
-        with st.spinner("Thinking..."):
-            try:
-                llm = ChatGroq(
-                    model="openai/gpt-oss-20b",
-                    api_key=st.session_state.groq_api_key,
-                    max_tokens=2048,
-                    reasoning_effort="low",
-                )
-                
-                client = MongoClient(st.session_state.mongodb_uri)
-                mongo_db = MongoDBDatabase(client=client, database=st.session_state.db_name)
-                toolkit = MongoDBDatabaseToolkit(db=mongo_db, llm=llm)
-                
-                system_message = MONGODB_AGENT_SYSTEM_PROMPT.format(top_k=5)
-                system_message += """
+        try:
+            llm = ChatGroq(
+                model="openai/gpt-oss-20b",
+                api_key=st.session_state.groq_api_key,
+                max_tokens=2048,
+                reasoning_effort="low",
+            )
+            
+            client = MongoClient(st.session_state.mongodb_uri)
+            mongo_db = MongoDBDatabase(client=client, database=st.session_state.db_name)
+            toolkit = MongoDBDatabaseToolkit(db=mongo_db, llm=llm)
+            
+            system_message = MONGODB_AGENT_SYSTEM_PROMPT.format(top_k=5)
+            system_message += """
 
 CRITICAL TOOL USAGE INSTRUCTIONS:
 1. COLLECTION NAMES: ALWAYS verify exact collection names using the appropriate tool before querying. NEVER guess (e.g., check for 'playlists' if asked about 'playlist').
 2. TOOL NAMES: When calling tools, use EXACTLY the tool name provided. DO NOT add punctuation, suffixes, or apostrophes (e.g., NEVER use 'mongodb_query_checker's' - use the exact tool name without quotes).
 3. ERROR RECOVERY: If a tool returns an error or you get a tool validation error, read the error and fix your next tool call. DO NOT repeat the same mistake.
-4. Always construct correct MongoDB query syntax."""
-                agent = create_agent(
-                    model=llm,
-                    tools=toolkit.get_tools(),
-                    system_prompt=system_message,
-                )
-                
-                st_callback = StreamlitCallbackHandler(st.container(), expand_new_thoughts=True)
-                response = agent.invoke(
+4. QUERY FORMAT: You MUST ONLY use `db.collection.aggregate(...)` queries. Other methods like `find()`, `countDocuments()`, or `findOne()` are strictly unsupported and will cause errors. For example, to count documents, use `db.collection.aggregate([{$count: "total"}])`."""
+            agent = create_agent(
+                model=llm,
+                tools=toolkit.get_tools(),
+                system_prompt=system_message,
+            )
+            
+            with st.status("Agent thinking...", expanded=True) as status:
+                final_response = None
+                for chunk in agent.stream(
                     {
                         "messages": [
                             {"role": m["role"], "content": m["content"]}
                             for m in st.session_state.messages
                         ]
                     },
-                    config={"callbacks": [st_callback]}
-                )
+                    stream_mode="updates"
+                ):
+                    for node, values in chunk.items():
+                        if node == "agent" or node == "model":
+                            msg = values["messages"][-1]
+                            if hasattr(msg, "tool_calls") and msg.tool_calls:
+                                for tool_call in msg.tool_calls:
+                                    st.write(f"🔧 **Tool Call:** `{tool_call['name']}`")
+                                    with st.expander("Tool Arguments"):
+                                        st.json(tool_call['args'])
+                        elif node == "tools":
+                            msg = values["messages"][-1]
+                            st.write(f"✅ **Tool Result:** `{msg.name}`")
+                            with st.expander("Tool Output"):
+                                st.write(msg.content)
+                        
+                        final_response = values
                 
-                answer = response["messages"][-1].content
-                st.markdown(answer)
-                st.session_state.messages.append({"role": "assistant", "content": answer})
-            except Exception as e:
-                st.error(f"Error: {e}")
+                status.update(label="Response Ready!", state="complete", expanded=False)
+            
+            answer = final_response["messages"][-1].content
+            st.markdown(answer)
+            st.session_state.messages.append({"role": "assistant", "content": answer})
+        except Exception as e:
+            st.error(f"Error: {e}")

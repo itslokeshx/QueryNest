@@ -89,6 +89,7 @@ if prompt := st.chat_input("Message QueryNest..."):
                 toolkit = MongoDBDatabaseToolkit(db=mongo_db, llm=llm)
                 
                 system_message = MONGODB_AGENT_SYSTEM_PROMPT.format(top_k=5)
+                system_message += "\n\nCRITICAL INSTRUCTION: ALWAYS verify exact collection names using the appropriate tool before querying. If a user asks about 'playlist' or 'playlists', ensure you check for the 'playlists' collection. NEVER guess collection names, as it will cause a crash."
                 agent = create_agent(
                     model=llm,
                     tools=toolkit.get_tools(),

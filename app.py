@@ -8,6 +8,6 @@ MONGODB_URI=os.getenv("MONGODB_URI")
 
 llm=ChatGroq(model="openai/gpt-oss-20b",api_key=GROQ_API_KEY,verbose=True)
 client = MongoClient(MONGODB_URI)
-DB =client["soulsync"]
-users=DB["users"]
-
+db =client["soulsync"]
+users=db["users"]
+print(users.find_one())

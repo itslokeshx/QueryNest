@@ -22,42 +22,32 @@ QueryNest is a simple, conversational web interface that allows users to interac
 
 <br>
 
-## 🛠️ Architecture & System Design (SD)
+## 🛠️ Architecture & Data Flow
 
-QueryNest follows a standard **ReAct (Reasoning and Acting)** agent pattern implemented via LangChain. 
-
-Here is a high-level overview of the System Design and Data Flow. This cycle repeats until the agent has successfully answered the user's query:
+QueryNest abstracts complex database interactions into a clean, three-step pipeline. By utilizing a **ReAct (Reasoning and Acting)** loop powered by LangChain, the application ensures that the LLM interacts with your database safely, predictably, and transparently.
 
 ```mermaid
-graph TD
-    classDef user fill:#2d2d2d,stroke:#bb86fc,stroke-width:2px,color:#fff;
-    classDef agent fill:#1e1e1e,stroke:#4EA94B,stroke-width:2px,color:#fff;
+graph LR
+    classDef input fill:#2d2d2d,stroke:#bb86fc,stroke-width:2px,color:#fff;
+    classDef process fill:#1e1e1e,stroke:#f55036,stroke-width:2px,color:#fff;
     classDef db fill:#1C3C3C,stroke:#4EA94B,stroke-width:2px,color:#fff;
+    classDef output fill:#2d2d2d,stroke:#bb86fc,stroke-width:2px,color:#fff;
 
-    A((👤 User)):::user -->|Enters Query| B[🖥️ Streamlit UI]:::user
-    B -->|Context & Credentials| C{🧠 LangChain Agent}:::agent
+    A[🗣️ 1. Input<br>Natural Language]:::input --> B
     
-    subgraph Agentic Loop
-        C -->|1. Reason & Plan| C
-        C -->|2. Tool: List Collections| D[(🍃 MongoDB)]:::db
-        D -.->|Available Schema| C
-        C -->|3. Tool: Query Checker| E[🛡️ Validation]:::agent
-        E -.->|Validated Aggregation Pipeline| C
-        C -->|4. Tool: Execute Query| D
-        D -.->|Raw JSON Results| C
+    subgraph 2. Agentic Processing
+        B{🧠 LangChain Core}:::process <-->|Check Schema<br>Validate Query<br>Execute Pipeline| C[(🍃 MongoDB)]:::db
     end
     
-    C -->|5. Synthesize Context| B
-    B -->|Streams Thoughts & Final Answer| A
+    B --> D[✨ 3. Output<br>Synthesized Response]:::output
 ```
 
-### 🧩 Core Components
-| Component | Technology | Role |
+### 🧩 The Pipeline Explained
+| Stage | What Happens Under the Hood | Technology |
 | :--- | :--- | :--- |
-| **Frontend** | `Streamlit` | Handles user inputs, securely stores URI/API keys in session state, and natively streams the agent's internal thought process in real-time. |
-| **Agent Core** | `LangChain` | Orchestrates the flow. It parses the user query, decides which tool to use, and recursively evaluates the tool's output. |
-| **Tools** | `Langchain Toolkit` | Includes **List Collections** (schema check), **Query Checker** (syntax validation), and **Query Executor** (safely runs the pipeline). |
-| **LLM Engine** | `Groq` | Provides the lightning-fast reasoning layer (e.g., `gpt-oss-20b` or `Llama3`) to translate plain English into valid MongoDB pipelines. |
+| **1. Input** | The user asks a plain English question via the frontend. The application captures the query and securely passes it to the agent along with the database credentials. | `Streamlit` |
+| **2. Processing** | The agent reasons about the request. It uses specialized tools to actively browse the database collections, draft a safe MongoDB aggregation pipeline, validate its syntax, and execute it against the database. | `LangChain` & `MongoDB` |
+| **3. Output** | The LLM receives the raw JSON results from the database, synthesizes the data into human-readable text, and streams it back to the user interface alongside its thought process. | `Groq` |
 
 <br>
 

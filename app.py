@@ -1,5 +1,6 @@
 import os
 import streamlit as st
+from dotenv import load_dotenv
 from langchain_groq import ChatGroq
 from pymongo import MongoClient
 from langchain_mongodb.agent_toolkit.database import MongoDBDatabase
@@ -7,13 +8,27 @@ from langchain_mongodb.agent_toolkit.toolkit import MongoDBDatabaseToolkit
 from langchain_mongodb.agent_toolkit import MONGODB_AGENT_SYSTEM_PROMPT
 from langchain.agents import create_agent
 
-sidebar_state = "collapsed" if st.session_state.get("connected", False) else "expanded"
-st.set_page_config(page_title="QueryNest", layout="centered", initial_sidebar_state=sidebar_state)
+load_dotenv()
+
+env_groq_key = os.getenv("GROQ_API_KEY", "")
+env_mongo_uri = os.getenv("MONGODB_URI", "")
+env_db_name = os.getenv("DB_NAME", "soulsync")
 
 if "connected" not in st.session_state:
-    st.session_state.connected = False
+    if env_groq_key and env_mongo_uri and env_db_name:
+        st.session_state.groq_api_key = env_groq_key
+        st.session_state.mongodb_uri = env_mongo_uri
+        st.session_state.db_name = env_db_name
+        st.session_state.connected = True
+        st.session_state.messages = [{"role": "assistant", "content": "How can I help you today?"}]
+    else:
+        st.session_state.connected = False
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
+
+sidebar_state = "collapsed" if st.session_state.connected else "expanded"
+st.set_page_config(page_title="QueryNest", layout="centered", initial_sidebar_state=sidebar_state)
 
 st.markdown("""
 <style>
@@ -40,9 +55,9 @@ st.markdown("""
 with st.sidebar:
     if not st.session_state.connected:
         st.title("Configuration")
-        groq_key_input = st.text_input("GROQ_API_KEY", type="password")
-        mongo_uri_input = st.text_input("MONGODB_URI", type="password")
-        db_name_input = st.text_input("Database Name")
+        groq_key_input = st.text_input("GROQ_API_KEY", value=env_groq_key, type="password")
+        mongo_uri_input = st.text_input("MONGODB_URI", value=env_mongo_uri, type="password")
+        db_name_input = st.text_input("Database Name", value=env_db_name)
         
         if st.button("Connect"):
             if groq_key_input and mongo_uri_input and db_name_input:
